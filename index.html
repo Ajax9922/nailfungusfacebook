@@ -1473,7 +1473,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
 
 <!-- ── PROGRESS BAR ── -->
 <div id="lcc-bar-wrap" style="position:fixed;top:0;left:0;right:0;height:4px;z-index:99999;background:rgba(0,0,0,0.2);pointer-events:none;">
-  <div id="lcc-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#C9A84C,#E8C97A);transition:width 1s linear;will-change:width;"></div>
+  <div id="lcc-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#C9A84C,#E8C97A);transition:none;will-change:width;"></div>
 </div>
 
 <!-- ── FLOATING CTAs ── -->
@@ -1525,11 +1525,12 @@ html, body { overflow-x: hidden; max-width: 100%; }
 
 <script>
 (function() {
+
   var GS_URL   = 'https://script.google.com/macros/s/AKfycbysICk6LbEkYG8eXKYYri_JfDALNN3RVt5lTrfAaB9_eONj7ojjRpZgOtjfM8BcxFXP4Q/exec';
   var MAKE_URL = 'https://hook.us2.make.com/x7vtpem5ldvrv34y5hmcy6bdxsoy8xlc';
   var SECONDS  = 25;
 
-  // ── Unique user ID (persistent) ──────────────
+  // ── Unique user ID ──────────────────────────────
   var uid = localStorage.getItem('lcc_uid') || '';
   if (!uid) {
     uid = 'u' + Date.now() + Math.random().toString(36).substr(2,6);
@@ -1541,7 +1542,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
     catch(e) { return 'direct'; }
   }
 
-  // ── 24hr dedup ───────────────────────────────
+  // ── 24hr dedup ──────────────────────────────────
   function alreadyViewedToday() {
     var t = parseInt(localStorage.getItem('lcc_v_' + uid) || '0', 10);
     return (Date.now() - t) < 86400000;
@@ -1550,21 +1551,95 @@ html, body { overflow-x: hidden; max-width: 100%; }
     localStorage.setItem('lcc_v_' + uid, Date.now().toString());
   }
 
-  // ── Progress bar & timer ─────────────────────
-  var elapsed   = 0;
-  var interval  = null;
-  var viewDone  = false;
-  var barEl     = null;
+  // ── Status check via fetch with CORS ────────────
+  // Google Apps Script supports CORS when deployed as web app
+  // Key: must use the /exec URL (not /dev)
+  function checkStatus(cb) {
+    fetch(GS_URL + '?action=status&t=' + Date.now(), {
+      method: 'GET',
+      cache: 'no-store'
+    })
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(d) {
+      var raw    = ((d && d.status) || 'active').toString().toLowerCase().trim();
+      var status = (raw === 'pause') ? 'paused' : raw;
+      console.log('[LCC] Status:', status);
+      cb(status);
+    })
+    .catch(function(err) {
+      // Fetch failed — try script tag JSONP as backup
+      console.warn('[LCC] Fetch failed:', err.message, '— trying JSONP');
+      checkStatusJSONP(cb);
+    });
+  }
 
-  function updateBar() {
-    if (barEl) barEl.style.width = Math.min((elapsed / SECONDS) * 100, 100) + '%';
+  function checkStatusJSONP(cb) {
+    var name  = 'lcc_s' + Date.now();
+    var timer = null;
+    var done  = false;
+    var s     = document.createElement('script');
+
+    window[name] = function(d) {
+      done = true; clearTimeout(timer); delete window[name];
+      if (s.parentNode) s.parentNode.removeChild(s);
+      var raw    = ((d && d.status) || 'active').toString().toLowerCase().trim();
+      var status = (raw === 'pause') ? 'paused' : raw;
+      console.log('[LCC] Status (JSONP):', status);
+      cb(status);
+    };
+
+    s.src     = GS_URL + '?action=status&callback=' + name + '&t=' + Date.now();
+    s.onerror = function() {
+      if (!done) { done = true; clearTimeout(timer); cb('active'); }
+    };
+    document.head.appendChild(s);
+
+    timer = setTimeout(function() {
+      if (!done) {
+        done = true;
+        console.warn('[LCC] Status check timed out');
+        cb('active');
+      }
+    }, 5000);
+  }
+
+  // ── Show paused lock screen ──────────────────────
+  function showPaused() {
+    var p = document.getElementById('lcc-paused');
+    if (p) { p.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+    var f = document.getElementById('lcc-float');
+    if (f) f.style.display = 'none';
+    var b = document.getElementById('lcc-bar-wrap');
+    if (b) b.style.display = 'none';
+  }
+
+  // ── Progress bar & 25s timer ─────────────────────
+  // Bar advances ONLY when tab is 100% focused
+  var elapsed  = 0;
+  var interval = null;
+  var viewDone = false;
+  var barEl    = null;
+  var isFocused = !document.hidden;
+
+  function setBar(pct) {
+    if (!barEl) return;
+    // Smooth: set transition just before updating width
+    barEl.style.transition = 'width 0.9s linear';
+    barEl.style.width = Math.min(pct, 100) + '%';
   }
 
   function tick() {
-    // Only count when tab is fully visible
-    if (document.hidden || document.visibilityState !== 'visible') return;
+    // Double-check tab is actually focused
+    if (document.hidden || document.visibilityState !== 'visible') {
+      pauseTimer();
+      return;
+    }
     elapsed++;
-    updateBar();
+    var pct = (elapsed / SECONDS) * 100;
+    setBar(pct);
     if (elapsed >= SECONDS) {
       clearInterval(interval); interval = null;
       if (!viewDone) {
@@ -1576,14 +1651,17 @@ html, body { overflow-x: hidden; max-width: 100%; }
   }
 
   function startTimer() {
-    if (interval) return;
+    if (interval || viewDone) return;
     interval = setInterval(tick, 1000);
   }
 
   function pauseTimer() {
     if (interval) { clearInterval(interval); interval = null; }
+    // Freeze bar — remove transition so it stays exactly where it is
+    if (barEl) barEl.style.transition = 'none';
   }
 
+  // Tab focus/blur events — BOTH visibilitychange AND focus/blur for reliability
   document.addEventListener('visibilitychange', function() {
     if (document.hidden) {
       pauseTimer();
@@ -1592,66 +1670,30 @@ html, body { overflow-x: hidden; max-width: 100%; }
     }
   });
 
-  // ── Log view to Google Sheet ─────────────────
+  window.addEventListener('blur', function() { pauseTimer(); });
+  window.addEventListener('focus', function() { if (!viewDone) startTimer(); });
+
+  // ── Log view (image pixel — zero CORS) ──────────
   function logView() {
     if (alreadyViewedToday()) return;
     markViewed();
-    // Image pixel — works 100% without CORS issues in all browsers
     var src = GS_URL
       + '?action=view'
       + '&userId=' + encodeURIComponent(uid)
-      + '&source='  + encodeURIComponent(utmSource());
-    var img = new Image();
-    img.src = src;
-    console.log('[LCC] View logged:', src);
+      + '&source='  + encodeURIComponent(utmSource())
+      + '&t='       + Date.now();
+    var img  = new Image();
+    img.src  = src;
+    console.log('[LCC] View logged');
   }
 
-  // ── Show popup ───────────────────────────────
+  // ── Show popup ───────────────────────────────────
   function showPopup() {
     var p = document.getElementById('lcc-popup');
     if (p) { p.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
   }
 
-  // ── Show paused ──────────────────────────────
-  function showPaused() {
-    var p = document.getElementById('lcc-paused');
-    if (p) { p.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
-    var f = document.getElementById('lcc-float');
-    if (f) f.style.display = 'none';
-    var b = document.getElementById('lcc-bar-wrap');
-    if (b) b.style.display = 'none';
-  }
-
-  // ── Check ad status ──────────────────────────
-  // Uses no-cors image trick to avoid CORS block on status check
-  function checkStatus(cb) {
-    // Try fetch with cors first
-    fetch(GS_URL + '?action=status')
-      .then(function(r) { return r.json(); })
-      .then(function(d) { cb((d.status || 'active').toLowerCase()); })
-      .catch(function() {
-        // CORS blocked — try JSONP-style via script tag
-        var cbName = 'lcc_cb_' + Date.now();
-        var done   = false;
-        window[cbName] = function(d) {
-          done = true;
-          delete window[cbName];
-          cb((d.status || 'active').toLowerCase());
-        };
-        var s = document.createElement('script');
-        s.src = GS_URL + '?action=status&callback=' + cbName;
-        s.onerror = function() {
-          if (!done) { done = true; cb('active'); }
-        };
-        document.head.appendChild(s);
-        // Timeout fallback — if no response in 3s, default active
-        setTimeout(function() {
-          if (!done) { done = true; cb('active'); console.warn('[LCC] Status timeout — active'); }
-        }, 3000);
-      });
-  }
-
-  // ── Form submit ──────────────────────────────
+  // ── Form submit ──────────────────────────────────
   window.submitForm = function() {
     var n   = (document.getElementById('fname')     || {}).value || '';
     var em  = (document.getElementById('femail')    || {}).value || '';
@@ -1662,13 +1704,12 @@ html, body { overflow-x: hidden; max-width: 100%; }
       alert('Please fill in your name, email, and phone number.');
       return;
     }
-
     var btn = document.querySelector('.form-submit');
     if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
 
     fetch(MAKE_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         name: n.trim(), email: em.trim(), phone: p.trim(),
         location: loc, source: utmSource(),
@@ -1680,38 +1721,24 @@ html, body { overflow-x: hidden; max-width: 100%; }
     document.getElementById('form-success').style.display = 'block';
   };
 
-  // ── Scroll fade animations ───────────────────
+  // ── Scroll fade-in ───────────────────────────────
   var obs = new IntersectionObserver(function(entries) {
     entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
   }, { threshold: 0.12 });
   document.querySelectorAll('.fade-up').forEach(function(el) { obs.observe(el); });
 
-  // ── BOOT ────────────────────────────────────
-  // Get bar element immediately (don't wait for load)
+  // ── BOOT ─────────────────────────────────────────
   barEl = document.getElementById('lcc-bar');
 
-  // Check ad status, then start timer
   checkStatus(function(status) {
     if (status === 'paused') {
       showPaused();
       return;
     }
-    // Always start the visual bar
-    // Only log the view if not already done today
+    // Active — start timer (bar advances only when tab focused)
     startTimer();
   });
 
-  // Also kick off on DOMContentLoaded as fallback
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-      barEl = document.getElementById('lcc-bar');
-    });
-  } else {
-    barEl = document.getElementById('lcc-bar');
-  }
-
 })();
 </script>
-
 </body>
-</html>
