@@ -1502,11 +1502,6 @@ html, body { overflow-x: hidden; max-width: 100%; }
   </div>
 </div>
 
-<!-- ── LOADING OVERLAY — hides page until status confirmed ── -->
-<div id="lcc-loading" style="position:fixed;inset:0;z-index:99996;background:#0a061e;display:flex;align-items:center;justify-content:center;transition:opacity 0.3s;">
-  <div style="width:40px;height:40px;border:3px solid rgba(201,168,76,0.2);border-top-color:#C9A84C;border-radius:50%;animation:lcc-spin 0.8s linear infinite;"></div>
-</div>
-
 <!-- ── PAUSED SCREEN ── -->
 <div id="lcc-paused" style="display:none;position:fixed;inset:0;z-index:99997;background:#0a061e;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;">
   <div style="font-size:52px;margin-bottom:20px;">&#128274;</div>
@@ -1516,7 +1511,6 @@ html, body { overflow-x: hidden; max-width: 100%; }
 </div>
 
 <style>
-@keyframes lcc-spin { to { transform: rotate(360deg); } }
 @keyframes lcc-wiggle {
   0%,80%,100%{transform:scale(1) rotate(0deg);}
   85%{transform:scale(1.05) rotate(-3deg);}
@@ -1745,28 +1739,19 @@ html, body { overflow-x: hidden; max-width: 100%; }
   // ── BOOT ─────────────────────────────────────────
   barEl = document.getElementById('lcc-bar');
 
-  // Hide page content until we know status — prevents flash
-  var loadEl = document.getElementById('lcc-loading');
-
-  function hideLoading() {
-    if (loadEl) {
-      loadEl.style.opacity = '0';
-      setTimeout(function() {
-        if (loadEl.parentNode) loadEl.style.display = 'none';
-      }, 300);
-    }
-  }
+  // Page loads immediately for all users
+  // Status check runs silently in background
+  // If paused → overlay appears on top (fast, ~1-2 seconds)
+  startTimer();
 
   checkStatus(function(status) {
     if (status === 'paused') {
       showPaused();
-      // Keep loading overlay hidden behind paused screen
-      if (loadEl) loadEl.style.display = 'none';
-      return;
+      // Also stop the timer
+      pauseTimer();
+      viewDone = true;
     }
-    // Active — reveal page, start timer
-    hideLoading();
-    startTimer();
+    // If active — timer already running, nothing to do
   });
 
 })();
