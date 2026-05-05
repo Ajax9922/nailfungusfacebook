@@ -1561,46 +1561,34 @@ html, body { overflow-x: hidden; max-width: 100%; }
   // Google Apps Script supports CORS when deployed as web app
   // Key: must use the /exec URL (not /dev)
   function checkStatus(cb) {
-    // JSONP via <script> tag — works from any domain, zero CORS issues
-    var cbName = 'lccSt' + Date.now();
-    var done   = false;
-    var timer  = null;
-    var s      = null;
-
-    window[cbName] = function(d) {
-      if (done) return;
-      done = true;
-      clearTimeout(timer);
-      try { delete window[cbName]; } catch(e) {}
-      if (s && s.parentNode) s.parentNode.removeChild(s);
-      var raw    = ((d && d.status) || 'active').toString().toLowerCase().trim();
+    fetch(GS_URL + '?action=status&_=' + Date.now(), {
+      method: 'GET', redirect: 'follow', cache: 'no-store'
+    })
+    .then(function(r) { return r.text(); })
+    .then(function(txt) {
+      var m = txt.match(/"status":"([^"]+)"/);
+      var raw = m ? m[1].toLowerCase().trim() : 'active';
       var status = (raw === 'pause') ? 'paused' : raw;
       console.log('[LCC] Status:', status);
       cb(status);
-    };
-
-    s = document.createElement('script');
-    s.type  = 'text/javascript';
-    s.async = true;
-    s.src   = GS_URL + '?action=status&callback=' + cbName + '&_=' + Date.now();
-
-    s.onerror = function() {
-      if (done) return;
-      done = true;
-      clearTimeout(timer);
-      console.warn('[LCC] JSONP failed — defaulting to active');
-      cb('active');
-    };
-
-    // 6 second hard timeout
-    timer = setTimeout(function() {
-      if (done) return;
-      done = true;
-      console.warn('[LCC] Status timeout — defaulting to active');
-      cb('active');
-    }, 6000);
-
-    document.head.appendChild(s);
+    })
+    .catch(function() {
+      console.warn('[LCC] fetch failed — trying JSONP');
+      var cbName = 'lccSt' + Date.now();
+      var done = false, timer = null, s = null;
+      window[cbName] = function(d) {
+        if (done) return; done = true; clearTimeout(timer);
+        try { delete window[cbName]; } catch(e){}
+        if (s && s.parentNode) s.parentNode.removeChild(s);
+        var raw = ((d && d.status) || 'active').toString().toLowerCase().trim();
+        cb((raw === 'pause') ? 'paused' : raw);
+      };
+      s = document.createElement('script');
+      s.src = GS_URL + '?action=status&callback=' + cbName + '&_=' + Date.now();
+      s.onerror = function() { if (!done) { done=true; clearTimeout(timer); cb('active'); }};
+      document.head.appendChild(s);
+      timer = setTimeout(function() { if (!done) { done=true; cb('active'); }}, 5000);
+    });
   }
 
   function checkStatusJSONP(cb) {
