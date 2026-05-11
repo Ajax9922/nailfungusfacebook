@@ -1,0 +1,27 @@
+[[headers]]
+  for = "/*"
+  [headers.values]
+
+    # Force HTTPS on all future visits for 1 year — prevents downgrade attacks
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+
+    # Clickjacking protection (server-level, overrides meta tag)
+    X-Frame-Options = "DENY"
+
+    # Prevent MIME-type sniffing
+    X-Content-Type-Options = "nosniff"
+
+    # Stop full URL leaking to third-party scripts
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+    # Block camera, mic, geolocation access by any script including Google Ads
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+
+    # Content Security Policy — server-level (browsers fully enforce this, unlike meta tags)
+    # unsafe-inline kept for styles only (acceptable tradeoff for static site)
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'nonce-WU6-cWnUYB_QS6sGVDq4sxuu' https://www.googletagmanager.com https://www.google-analytics.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://www.google-analytics.com https://www.googletagmanager.com https://script.google.com; connect-src 'self' https://hook.us2.make.com https://script.google.com https://www.google-analytics.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; upgrade-insecure-requests;"
+
+    # Prevent cross-origin attacks on shared resources
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Resource-Policy = "same-origin"
+    Cross-Origin-Embedder-Policy = "require-corp"
