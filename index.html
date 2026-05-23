@@ -1,8 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
+<!-- ── Security / CSP ── -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'nonce-WU6-cWnUYB_QS6sGVDq4sxuu' https://www.googletagmanager.com https://www.google-analytics.com https://fonts.googleapis.com https://connect.facebook.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://www.google-analytics.com https://www.googletagmanager.com https://script.google.com https://www.facebook.com; connect-src 'self' https://hook.us2.make.com https://script.google.com https://www.google-analytics.com https://www.facebook.com https://connect.facebook.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self';">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+
 <!-- ── META PIXELS ── -->
-<script>
+<script nonce="WU6-cWnUYB_QS6sGVDq4sxuu">
 !function(f,b,e,v,n,t,s)
 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
 n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -20,6 +26,16 @@ fbq('track', 'PageView');
   <img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1292671809160921&ev=PageView&noscript=1"/>
 </noscript>
 <!-- ── END META PIXELS ── -->
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-981347842"></script>
+<script nonce="WU6-cWnUYB_QS6sGVDq4sxuu">
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'AW-981347842');
+</script>
+<!-- End Google tag -->
 <meta charset="UTF-8">
 <meta name="facebook-domain-verification" content="lif53rtoz084ky8yxuzuiy2yfp3afg" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
