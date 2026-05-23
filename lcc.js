@@ -6,10 +6,11 @@
   var SECONDS  = 25;
   var PIXELS   = ['1242574784615190', '1292671809160921'];
 
-  // ── Meta pixel event firing via image requests ───
-  // Bypasses CSP script-src restrictions entirely.
-  // Works exactly like Meta's own noscript fallback.
+  // ── Meta pixel event firing ──────────────────────
+  // Uses fbq() now that CSP is fixed + image fallback for reliability
   function firePixel(event, params) {
+    if (typeof fbq !== 'undefined') fbq('track', event, params || {});
+    // Image fallback — fires even if fbevents.js fails to load
     PIXELS.forEach(function(id) {
       var url = 'https://www.facebook.com/tr?id=' + id
               + '&ev=' + encodeURIComponent(event)
@@ -21,12 +22,8 @@
       }
       new Image().src = url;
     });
-    // Also call fbq() if fbevents.js happened to load (no harm if it didn't)
-    if (typeof fbq !== 'undefined') fbq('track', event, params || {});
   }
-
-  // Fire PageView immediately
-  firePixel('PageView');
+  // PageView already fired by inline pixel script in <head> — no duplicate here
 
   // ── Unique user ID ──────────────────────────────
   var uid = localStorage.getItem('lcc_uid') || '';
