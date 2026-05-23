@@ -17,23 +17,6 @@ fbq('track', 'PageView');
 <noscript><img height="1" width="1" style="display:none"
 src="https://www.facebook.com/tr?id=1242574784615190&ev=PageView&noscript=1"/></noscript>
 <!-- ── END FACEBOOK PIXEL ── -->
-<!-- Meta Pixel Code -->
-<script>
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '1292671809160921');
-fbq('track', 'PageView');
-</script>
-<noscript><img height="1" width="1" style="display:none"
-src="https://www.facebook.com/tr?id=1292671809160921&ev=PageView&noscript=1"
-/></noscript>
-<!-- End Meta Pixel Code -->
 <meta charset="UTF-8">
 <meta name="facebook-domain-verification" content="lif53rtoz084ky8yxuzuiy2yfp3afg" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1728,15 +1711,8 @@ html, body { overflow-x: hidden; max-width: 100%; }
     }
   });
 
-  var blurTimer = null;
-  window.addEventListener('blur', function() {
-    // Debounce: ignore brief blurs (e.g. browser UI grabbing focus during refresh)
-    blurTimer = setTimeout(function() { pauseTimer(); }, 200);
-  });
-  window.addEventListener('focus', function() {
-    clearTimeout(blurTimer);
-    if (!viewDone) startTimer();
-  });
+  window.addEventListener('blur', function() { pauseTimer(); });
+  window.addEventListener('focus', function() { if (!viewDone) startTimer(); });
 
   // ── Log view (image pixel — zero CORS) ──────────
   function logView() {
@@ -1807,13 +1783,9 @@ html, body { overflow-x: hidden; max-width: 100%; }
   // Page loads immediately for all users
   // Status check runs silently in background
   // If paused → overlay appears on top (fast, ~1-2 seconds)
-  // Small delay lets the browser settle blur/focus events fired during refresh
-  // before the timer starts — prevents the timer from being instantly paused.
-  setTimeout(function() {
-    if (!viewDone && !document.hidden) startTimer();
-  }, 300);
+  startTimer();
 
-  checkStatusJSONP(function(status) {
+  checkStatus(function(status) {
     if (status === 'paused') {
       showPaused();
       // Also stop the timer
