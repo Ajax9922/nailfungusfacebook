@@ -1,14 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
-<!-- ── Security / CSP ── -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'nonce-WU6-cWnUYB_QS6sGVDq4sxuu' https://www.googletagmanager.com https://www.google-analytics.com https://fonts.googleapis.com https://connect.facebook.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://www.google-analytics.com https://www.googletagmanager.com https://script.google.com https://www.facebook.com; connect-src 'self' https://hook.us2.make.com https://script.google.com https://www.google-analytics.com https://www.facebook.com https://connect.facebook.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self';">
-<meta http-equiv="X-Frame-Options" content="DENY">
-<meta http-equiv="X-Content-Type-Options" content="nosniff">
-
-<!-- ── META PIXELS ── -->
-<script nonce="WU6-cWnUYB_QS6sGVDq4sxuu">
+<!-- ── FACEBOOK PIXEL ── -->
+<script>
 !function(f,b,e,v,n,t,s)
 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
 n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -17,25 +11,12 @@ n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
 s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '1242574784615190');
 fbq('init', '1292671809160921');
 fbq('track', 'PageView');
 </script>
-<noscript>
-  <img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1242574784615190&ev=PageView&noscript=1"/>
-  <img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1292671809160921&ev=PageView&noscript=1"/>
-</noscript>
-<!-- ── END META PIXELS ── -->
-
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=AW-981347842"></script>
-<script nonce="WU6-cWnUYB_QS6sGVDq4sxuu">
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'AW-981347842');
-</script>
-<!-- End Google tag -->
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=1292671809160921&ev=PageView&noscript=1"/></noscript>
+<!-- ── END FACEBOOK PIXEL ── -->
 <meta charset="UTF-8">
 <meta name="facebook-domain-verification" content="lif53rtoz084ky8yxuzuiy2yfp3afg" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1296,7 +1277,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
             <option>Brampton — 700 Balmoral Dr. Unit #7</option>
           </select>
         </div>
-        <button class="form-submit" id="form-submit-btn">Book My FREE Consultation →</button>
+        <button class="form-submit" onclick="submitForm()">Book My FREE Consultation →</button>
         <p class="form-disclaimer">🔒 Your information is private and will never be shared.</p>
         <p style="font-size:11px;color:#aaa;text-align:center;margin-top:8px;line-height:1.6;">
           By submitting, you agree to our
@@ -1508,8 +1489,8 @@ html, body { overflow-x: hidden; max-width: 100%; }
 
 
 <!-- ── PROGRESS BAR ── -->
-<div id="lcc-bar-wrap" style="position:fixed;top:0;left:0;right:0;height:4px;z-index:99999;pointer-events:none;background:rgba(255,255,255,0.08);">
-  <div id="lcc-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#C9A84C,#f0d878,#C9A84C);background-size:200% 100%;will-change:width;transform-origin:left center;box-shadow:0 0 8px rgba(201,168,76,0.8);transition:width 0.25s linear;"></div>
+<div id="lcc-bar-wrap" style="position:fixed;top:0;left:0;right:0;height:2px;z-index:99999;pointer-events:none;">
+  <div id="lcc-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#C9A84C,#f0d878,#C9A84C);background-size:200% 100%;will-change:transform;transform-origin:left center;"></div>
 </div>
 
 <!-- ── FLOATING CTAs ── -->
@@ -1559,5 +1540,261 @@ html, body { overflow-x: hidden; max-width: 100%; }
 }
 </style>
 
-<script src="lcc.js"></script>
+<script>
+(function() {
+
+  var GS_URL   = 'https://script.google.com/macros/s/AKfycbysICk6LbEkYG8eXKYYri_JfDALNN3RVt5lTrfAaB9_eONj7ojjRpZgOtjfM8BcxFXP4Q/exec';
+  var MAKE_URL = 'https://hook.us2.make.com/x7vtpem5ldvrv34y5hmcy6bdxsoy8xlc';
+  var SECONDS  = 25;
+
+  // ── Unique user ID ──────────────────────────────
+  var uid = localStorage.getItem('lcc_uid') || '';
+  if (!uid) {
+    uid = 'u' + Date.now() + Math.random().toString(36).substr(2,6);
+    localStorage.setItem('lcc_uid', uid);
+  }
+
+  function utmSource() {
+    try { return new URLSearchParams(location.search).get('utm_source') || 'direct'; }
+    catch(e) { return 'direct'; }
+  }
+
+  // ── 24hr dedup ──────────────────────────────────
+  function alreadyViewedToday() {
+    var t = parseInt(localStorage.getItem('lcc_v_' + uid) || '0', 10);
+    return (Date.now() - t) < 86400000;
+  }
+  function markViewed() {
+    localStorage.setItem('lcc_v_' + uid, Date.now().toString());
+  }
+
+  // ── Status check via fetch with CORS ────────────
+  // Google Apps Script supports CORS when deployed as web app
+  // Key: must use the /exec URL (not /dev)
+  function checkStatus(cb) {
+    fetch(GS_URL + '?action=status&_=' + Date.now(), {
+      method: 'GET', redirect: 'follow', cache: 'no-store'
+    })
+    .then(function(r) { return r.text(); })
+    .then(function(txt) {
+      var m = txt.match(/"status":"([^"]+)"/);
+      var raw = m ? m[1].toLowerCase().trim() : 'active';
+      var status = (raw === 'pause') ? 'paused' : raw;
+      console.log('[LCC] Status:', status);
+      cb(status);
+    })
+    .catch(function() {
+      console.warn('[LCC] fetch failed — trying JSONP');
+      var cbName = 'lccSt' + Date.now();
+      var done = false, timer = null, s = null;
+      window[cbName] = function(d) {
+        if (done) return; done = true; clearTimeout(timer);
+        try { delete window[cbName]; } catch(e){}
+        if (s && s.parentNode) s.parentNode.removeChild(s);
+        var raw = ((d && d.status) || 'active').toString().toLowerCase().trim();
+        cb((raw === 'pause') ? 'paused' : raw);
+      };
+      s = document.createElement('script');
+      s.src = GS_URL + '?action=status&callback=' + cbName + '&_=' + Date.now();
+      s.onerror = function() { if (!done) { done=true; clearTimeout(timer); cb('active'); }};
+      document.head.appendChild(s);
+      timer = setTimeout(function() { if (!done) { done=true; cb('active'); }}, 5000);
+    });
+  }
+
+  function checkStatusJSONP(cb) {
+    var name  = 'lcc_s' + Date.now();
+    var timer = null;
+    var done  = false;
+    var s     = document.createElement('script');
+
+    window[name] = function(d) {
+      done = true; clearTimeout(timer); delete window[name];
+      if (s.parentNode) s.parentNode.removeChild(s);
+      var raw    = ((d && d.status) || 'active').toString().toLowerCase().trim();
+      var status = (raw === 'pause') ? 'paused' : raw;
+      console.log('[LCC] Status (JSONP):', status);
+      cb(status);
+    };
+
+    s.src     = GS_URL + '?action=status&callback=' + name + '&t=' + Date.now();
+    s.onerror = function() {
+      if (!done) { done = true; clearTimeout(timer); cb('active'); }
+    };
+    document.head.appendChild(s);
+
+    timer = setTimeout(function() {
+      if (!done) {
+        done = true;
+        console.warn('[LCC] Status check timed out');
+        cb('active');
+      }
+    }, 5000);
+  }
+
+  // ── Show paused lock screen ──────────────────────
+  function showPaused() {
+    var p = document.getElementById('lcc-paused');
+    if (p) { p.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+    var f = document.getElementById('lcc-float');
+    if (f) f.style.display = 'none';
+    var b = document.getElementById('lcc-bar-wrap');
+    if (b) b.style.display = 'none';
+  }
+
+  // ── Progress bar & 25s timer ─────────────────────
+  // Bar advances ONLY when tab is 100% focused
+  var elapsed   = 0;       // seconds counted
+  var startedAt = null;    // timestamp when current run started
+  var viewDone  = false;
+  var barEl     = null;
+  var running   = false;
+  var rafId     = null;
+
+  // ── Smooth bar via requestAnimationFrame ─────────────────
+  // Uses real elapsed time — buttery smooth, no jank
+  function rafLoop(now) {
+    if (!running) return;
+    if (document.hidden || document.visibilityState !== 'visible') {
+      pauseTimer();
+      return;
+    }
+    var secondsSoFar = elapsed + (now - startedAt) / 1000;
+    var pct = Math.min((secondsSoFar / SECONDS) * 100, 100);
+
+    // Update bar width directly — no transition needed, rAF is smooth
+    if (barEl) barEl.style.width = pct.toFixed(3) + '%';
+
+    if (secondsSoFar >= SECONDS) {
+      running = false;
+      elapsed = SECONDS;
+      if (barEl) barEl.style.width = '100%';
+      if (!viewDone) {
+        viewDone = true;
+        // Facebook ViewContent event (25s qualified view)
+        if (typeof fbq !== 'undefined') {
+          fbq('track', 'ViewContent', {
+            content_name: 'Nail Fungus Treatment Page',
+            content_category: 'Healthcare - Laser Treatment',
+            currency: 'CAD'
+          });
+        }
+        logView();
+        showPopup();
+      }
+      return;
+    }
+    rafId = requestAnimationFrame(rafLoop);
+  }
+
+  function startTimer() {
+    if (running || viewDone) return;
+    running   = true;
+    startedAt = performance.now();
+    rafId     = requestAnimationFrame(rafLoop);
+  }
+
+  function pauseTimer() {
+    if (!running) return;
+    running  = false;
+    // Accumulate elapsed seconds so far
+    elapsed += (performance.now() - startedAt) / 1000;
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  }
+
+  // Tab focus/blur events — BOTH visibilitychange AND focus/blur for reliability
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      pauseTimer();
+    } else {
+      if (!viewDone) startTimer();
+    }
+  });
+
+  window.addEventListener('blur', function() { pauseTimer(); });
+  window.addEventListener('focus', function() { if (!viewDone) startTimer(); });
+
+  // ── Log view (image pixel — zero CORS) ──────────
+  function logView() {
+    if (alreadyViewedToday()) return;
+    markViewed();
+    var src = GS_URL
+      + '?action=view'
+      + '&userId=' + encodeURIComponent(uid)
+      + '&source='  + encodeURIComponent(utmSource())
+      + '&t='       + Date.now();
+    var img  = new Image();
+    img.src  = src;
+    console.log('[LCC] View logged');
+  }
+
+  // ── Show popup ───────────────────────────────────
+  function showPopup() {
+    var p = document.getElementById('lcc-popup');
+    if (p) { p.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+  }
+
+  // ── Form submit ──────────────────────────────────
+  window.submitForm = function() {
+    var n   = (document.getElementById('fname')     || {}).value || '';
+    var em  = (document.getElementById('femail')    || {}).value || '';
+    var p   = (document.getElementById('fphone')    || {}).value || '';
+    var loc = (document.getElementById('flocation') || {}).value || '';
+
+    if (!n.trim() || !em.trim() || !p.trim()) {
+      alert('Please fill in your name, email, and phone number.');
+      return;
+    }
+    var btn = document.querySelector('.form-submit');
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+
+    // Fire Facebook Lead event
+    if (typeof fbq !== 'undefined') {
+      fbq('track', 'Lead', {
+        content_name: 'Nail Fungus Consultation',
+        content_category: 'Healthcare',
+        currency: 'CAD'
+      });
+    }
+
+    fetch(MAKE_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        name: n.trim(), email: em.trim(), phone: p.trim(),
+        location: loc, source: utmSource(),
+        timestamp: new Date().toISOString()
+      })
+    }).catch(function() {});
+
+    document.getElementById('form-fields').style.display = 'none';
+    document.getElementById('form-success').style.display = 'block';
+  };
+
+  // ── Scroll fade-in ───────────────────────────────
+  var obs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.fade-up').forEach(function(el) { obs.observe(el); });
+
+  // ── BOOT ─────────────────────────────────────────
+  barEl = document.getElementById('lcc-bar');
+
+  // Page loads immediately for all users
+  // Status check runs silently in background
+  // If paused → overlay appears on top (fast, ~1-2 seconds)
+  startTimer();
+
+  checkStatus(function(status) {
+    if (status === 'paused') {
+      showPaused();
+      // Also stop the timer
+      pauseTimer();
+      viewDone = true;
+    }
+    // If active — timer already running, nothing to do
+  });
+
+})();
+</script>
 </body>
