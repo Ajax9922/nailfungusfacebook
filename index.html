@@ -1492,8 +1492,8 @@ html, body { overflow-x: hidden; max-width: 100%; }
 
 
 <!-- ── PROGRESS BAR ── -->
-<div id="lcc-bar-wrap" style="position:fixed;top:0;left:0;right:0;height:2px;z-index:99999;pointer-events:none;">
-  <div id="lcc-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#C9A84C,#f0d878,#C9A84C);background-size:200% 100%;will-change:transform;transform-origin:left center;"></div>
+<div id="lcc-bar-wrap" style="position:fixed;top:0;left:0;right:0;height:4px;z-index:99999;pointer-events:none;background:rgba(255,255,255,0.08);">
+  <div id="lcc-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#C9A84C,#f0d878,#C9A84C);background-size:200% 100%;will-change:width;transform-origin:left center;box-shadow:0 0 8px rgba(201,168,76,0.8);"></div>
 </div>
 
 <!-- ── FLOATING CTAs ── -->
@@ -1714,15 +1714,8 @@ html, body { overflow-x: hidden; max-width: 100%; }
     }
   });
 
-  var blurTimer = null;
-  window.addEventListener('blur', function() {
-    // Debounce: ignore brief blurs (e.g. browser UI grabbing focus during refresh)
-    blurTimer = setTimeout(function() { pauseTimer(); }, 200);
-  });
-  window.addEventListener('focus', function() {
-    clearTimeout(blurTimer);
-    if (!viewDone) startTimer();
-  });
+  // visibilitychange is the only reliable cross-device event (works on mobile too)
+  // blur/focus removed — mobile browsers don't fire them consistently
 
   // ── Log view (image pixel — zero CORS) ──────────
   function logView() {
@@ -1797,7 +1790,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
   // before the timer starts — prevents the timer from being instantly paused.
   setTimeout(function() {
     if (!viewDone && !document.hidden) startTimer();
-  }, 300);
+  }, 500);
 
   checkStatusJSONP(function(status) {
     if (status === 'paused') {
