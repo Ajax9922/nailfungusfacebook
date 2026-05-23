@@ -81,24 +81,45 @@ fbq('track', 'PageView');
   }
 
   // ── Progress bar & 25s timer ─────────────────────
-  var elapsed   = 0;
-  var startedAt = null;
+  var elapsed   = 0;       // ms accumulated while focused
+  var lastTick  = null;    // Date.now() at last tick
   var viewDone  = false;
   var barEl     = null;
   var running   = false;
   var tickId    = null;
 
+  // ── Focus check ──────────────────────────────────
+  // Returns true only when the tab is fully in focus and visible
+  function isFullyFocused() {
+    return !document.hidden && document.hasFocus();
+  }
+
+  // ── Timer via setInterval ────────────────────────
+  // Time only counted in discrete ticks — never accumulates in background
   function tick() {
     if (!running) return;
-    if (document.hidden) { pauseTimer(); return; }
 
-    var secondsSoFar = elapsed + (performance.now() - startedAt) / 1000;
+    if (!isFullyFocused()) {
+      // Lost focus mid-tick — pause without counting this interval
+      pauseTimer();
+      return;
+    }
+
+    var now  = Date.now();
+    var delta = now - lastTick;  // ms since last tick
+    lastTick  = now;
+
+    // Cap delta to 300ms — prevents a single stale tick from rushing the bar
+    // (e.g. if setInterval fires late after a brief freeze)
+    elapsed += Math.min(delta, 300);
+
+    var secondsSoFar = elapsed / 1000;
     var pct = Math.min((secondsSoFar / SECONDS) * 100, 100);
     if (barEl) barEl.style.width = pct.toFixed(2) + '%';
 
     if (secondsSoFar >= SECONDS) {
       running = false;
-      elapsed = SECONDS;
+      elapsed = SECONDS * 1000;
       if (barEl) barEl.style.width = '100%';
       clearInterval(tickId); tickId = null;
       if (!viewDone) {
@@ -118,22 +139,28 @@ fbq('track', 'PageView');
 
   function startTimer() {
     if (running || viewDone) return;
-    running   = true;
-    startedAt = performance.now();
-    tickId    = setInterval(tick, 250);
+    if (!isFullyFocused()) return;  // don't start if not focused
+    running  = true;
+    lastTick = Date.now();
+    tickId   = setInterval(tick, 250);
   }
 
   function pauseTimer() {
     if (!running) return;
-    running  = false;
-    elapsed += (performance.now() - startedAt) / 1000;
+    running = false;
     if (tickId) { clearInterval(tickId); tickId = null; }
+    // elapsed already accumulated in tick() — no extra math needed
   }
 
-  // visibilitychange is the only reliable cross-device pause/resume event
+  // ── Focus/visibility events ──────────────────────
   document.addEventListener('visibilitychange', function() {
     if (document.hidden) { pauseTimer(); }
-    else if (!viewDone)  { startTimer(); }
+    else if (!viewDone && document.hasFocus()) { startTimer(); }
+  });
+
+  window.addEventListener('blur', function() { pauseTimer(); });
+  window.addEventListener('focus', function() {
+    if (!viewDone && !document.hidden) startTimer();
   });
 
   // ── Log view (image pixel — zero CORS) ──────────
@@ -202,7 +229,7 @@ fbq('track', 'PageView');
   barEl = document.getElementById('lcc-bar');
 
   setTimeout(function() {
-    if (!viewDone && !document.hidden) startTimer();
+    if (!viewDone && isFullyFocused()) startTimer();
   }, 500);
 
   checkStatusJSONP(function(status) {
