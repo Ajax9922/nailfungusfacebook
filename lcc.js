@@ -4,6 +4,29 @@
   var GS_URL   = 'https://script.google.com/macros/s/AKfycbysICk6LbEkYG8eXKYYri_JfDALNN3RVt5lTrfAaB9_eONj7ojjRpZgOtjfM8BcxFXP4Q/exec';
   var MAKE_URL = 'https://hook.us2.make.com/x7vtpem5ldvrv34y5hmcy6bdxsoy8xlc';
   var SECONDS  = 25;
+  var PIXELS   = ['1242574784615190', '1292671809160921'];
+
+  // ── Meta pixel event firing via image requests ───
+  // Bypasses CSP script-src restrictions entirely.
+  // Works exactly like Meta's own noscript fallback.
+  function firePixel(event, params) {
+    PIXELS.forEach(function(id) {
+      var url = 'https://www.facebook.com/tr?id=' + id
+              + '&ev=' + encodeURIComponent(event)
+              + '&noscript=1&t=' + Date.now();
+      if (params) {
+        Object.keys(params).forEach(function(k) {
+          url += '&cd[' + encodeURIComponent(k) + ']=' + encodeURIComponent(params[k]);
+        });
+      }
+      new Image().src = url;
+    });
+    // Also call fbq() if fbevents.js happened to load (no harm if it didn't)
+    if (typeof fbq !== 'undefined') fbq('track', event, params || {});
+  }
+
+  // Fire PageView immediately
+  firePixel('PageView');
 
   // ── Unique user ID ──────────────────────────────
   var uid = localStorage.getItem('lcc_uid') || '';
@@ -111,13 +134,11 @@
       clearInterval(tickId); tickId = null;
       if (!viewDone) {
         viewDone = true;
-        if (typeof fbq !== 'undefined') {
-          fbq('track', 'ViewContent', {
+        firePixel('ViewContent', {
             content_name: 'Nail Fungus Treatment Page',
             content_category: 'Healthcare - Laser Treatment',
             currency: 'CAD'
           });
-        }
         logView();
         showPopup();
       }
@@ -184,13 +205,11 @@
     var btn = document.querySelector('.form-submit');
     if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
 
-    if (typeof fbq !== 'undefined') {
-      fbq('track', 'Lead', {
-        content_name: 'Nail Fungus Consultation',
-        content_category: 'Healthcare',
-        currency: 'CAD'
-      });
-    }
+    firePixel('Lead', {
+      content_name: 'Nail Fungus Consultation',
+      content_category: 'Healthcare',
+      currency: 'CAD'
+    });
 
     fetch(MAKE_URL, {
       method: 'POST',
