@@ -171,7 +171,7 @@
   }
 
   // ── Form submit ──────────────────────────────────
-  window.submitForm = function() {
+  function submitForm() {
     var n   = (document.getElementById('fname')     || {}).value || '';
     var em  = (document.getElementById('femail')    || {}).value || '';
     var p   = (document.getElementById('fphone')    || {}).value || '';
@@ -204,7 +204,11 @@
 
     document.getElementById('form-fields').style.display = 'none';
     document.getElementById('form-success').style.display = 'block';
-  };
+  }
+
+  // Attach submit button via JS — avoids CSP blocking inline onclick attributes
+  var submitBtn = document.getElementById('form-submit-btn');
+  if (submitBtn) submitBtn.addEventListener('click', submitForm);
 
   // ── Scroll fade-in ───────────────────────────────
   var obs = new IntersectionObserver(function(entries) {
