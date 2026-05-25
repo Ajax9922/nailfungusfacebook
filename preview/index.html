@@ -1555,6 +1555,12 @@ html, body { overflow-x: hidden; max-width: 100%; }
   var MAKE_URL = 'https://hook.us2.make.com/x7vtpem5ldvrv34y5hmcy6bdxsoy8xlc';
   var SECONDS  = 25;
 
+  // ── PREVIEW MODE ─────────────────────────────────
+  // This is the PREVIEW copy. Views are NOT logged and the
+  // pause status is ignored, so the client can review the
+  // page freely without consuming any paid views.
+  var PREVIEW = true;
+
   // ── Unique user ID ──────────────────────────────
   var uid = localStorage.getItem('lcc_uid') || '';
   if (!uid) {
@@ -1680,7 +1686,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
       if (!viewDone) {
         viewDone = true;
         // Facebook ViewContent event (25s qualified view)
-        if (typeof fbq !== 'undefined') {
+        if (!PREVIEW && typeof fbq !== 'undefined') {
           fbq('track', 'ViewContent', {
             content_name: 'Nail Fungus Treatment Page',
             content_category: 'Healthcare - Laser Treatment',
@@ -1724,6 +1730,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
 
   // ── Log view (image pixel — zero CORS) ──────────
   function logView() {
+    if (PREVIEW) { console.log('[LCC] PREVIEW mode — view NOT logged'); return; }
     if (alreadyViewedToday()) return;
     markViewed();
     var src = GS_URL
@@ -1804,15 +1811,17 @@ html, body { overflow-x: hidden; max-width: 100%; }
   // If paused → overlay appears on top (fast, ~1-2 seconds)
   startTimer();
 
-  checkStatus(function(status) {
-    if (status === 'paused') {
-      showPaused();
-      // Also stop the timer
-      pauseTimer();
-      viewDone = true;
-    }
-    // If active — timer already running, nothing to do
-  });
+  if (!PREVIEW) {
+    checkStatus(function(status) {
+      if (status === 'paused') {
+        showPaused();
+        // Also stop the timer
+        pauseTimer();
+        viewDone = true;
+      }
+      // If active — timer already running, nothing to do
+    });
+  }
 
 })();
 </script>
